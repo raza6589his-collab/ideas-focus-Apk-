@@ -1,0 +1,58 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Ensure Gradle Wrapper
+        run: |
+          gradle wrapper --gradle-version 8.2
+          chmod +x gradlew
+
+      - name: Build Android Debug APK
+        run: |
+          ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Prepare APK Output
+        run: |
+          mkdir -p output_apk
+          cp app/build/outputs/apk/debug/app-debug.apk output_apk/IdeasFocus.apk
+          ls -lh output_apk/
+
+      - name: Upload APK as Workflow Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: IdeasFocus-Android-APK
+          path: output_apk/IdeasFocus.apk
+
+      - name: Publish GitHub Release with APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.1.0-android
+          name: "Ideas & Focus Android Edition v1.1.0"
+          body: "فایل نصبی رسمی برنامه ایده‌ها و تمرکز برای اندروید نسخه ۱.۱.۰ با پشتیبانی کامل از ۵ زبان (فارسی، انگلیسی، عربی، ژاپنی و ایتالیایی) با تغییر فوری و تطبیق خودکار جهت صفحه (RTL/LTR). مستقیماً دانلود و روی گوشی خود نصب کنید."
+          files: output_apk/IdeasFocus.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
